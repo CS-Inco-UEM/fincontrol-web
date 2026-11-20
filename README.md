@@ -1,19 +1,16 @@
-# FinControl Web
+# React + Vite
 
-Controle financeiro pessoal com simulador de financiamento.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Equipe
-- Sivirino Gabriel Mendes de Sousa (RA 139757)
-- Vitor Akihiro Shiki (RA 138905)
+Currently, two official plugins are available:
 
-## Sobre o projeto
-Aplicação web de controle financeiro pessoal, com um módulo de simulação
-de financiamento integrado ao planejamento mensal do usuário.
-Desenvolvido como trabalho da disciplina de Construção de Software.
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## Stack
-React + Vite, Firebase (Authentication + Cloud Firestore), hospedagem
-em GitHub Pages.
+## React Compiler
 
-## Documentação
-A especificação atual está em docs/etapa1/FinControl_Web_Etapa1.pdf.
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
