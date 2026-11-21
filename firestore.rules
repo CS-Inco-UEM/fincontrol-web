@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Movimentações: cada usuário só acessa as próprias.
+    // Create/update validam os dados; sem isso, editar um documento
+    // existente burlaria a validação do create.
+    match /usuarios/{userId}/movimentacoes/{movId} {
+      allow read, delete: if request.auth != null
+        && request.auth.uid == userId;
+
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.valor is number
+        && request.resource.data.valor > 0
+        && request.resource.data.tipo in ['receita', 'despesa', 'transferencia', 'resgate']
+        && request.resource.data.descricao is string;
+    }
+
+    // Qualquer outro caminho (metas, planejamento, simulações, etc.)
+    // fica negado por padrão até ganhar sua própria regra explícita.
+  }
+}
