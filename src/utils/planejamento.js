@@ -160,6 +160,10 @@ export function calcularPlanejamento({
       receitaPrevista,
       despesaProjetada: despesaBase + parcelasDoMes,
       parcelasFinanciamento: parcelasDoMes,
+      // gasto real do mês, só movimentações do tipo "despesa" — não conta
+      // aporte pra meta (transferência) nem parcela de financiamento, que
+      // já aparecem em colunas separadas.
+      despesaReal,
       temDadosReais,
       fechado,
     });
@@ -192,6 +196,7 @@ export function calcularPlanejamento({
         parcelasFinanciamento: info.parcelasFinanciamento,
         aporteRecomendado: aporteReal,
         limiteGastos: info.receitaPrevista - aporteReal - info.parcelasFinanciamento,
+        gastoReal: info.despesaReal,
         aporteReal,
         status: "fechado",
         fechavel: false,
@@ -211,8 +216,10 @@ export function calcularPlanejamento({
     const limiteGastos = info.receitaPrevista - aporteRecomendado - info.parcelasFinanciamento;
 
     let aporteReal = null;
+    let gastoReal = null;
     if (info.temDadosReais) {
       aporteReal = transferidoParaMetaNoMes(movimentacoes, meta.id, info.ano, info.mes);
+      gastoReal = info.despesaReal;
     }
 
     if (aporteRecomendado + info.parcelasFinanciamento > info.receitaPrevista) {
@@ -240,6 +247,7 @@ export function calcularPlanejamento({
       parcelasFinanciamento: info.parcelasFinanciamento,
       aporteRecomendado,
       limiteGastos,
+      gastoReal,
       aporteReal,
       status,
       // só o mês atual (o primeiro com dado real, ainda aberto) pode ser

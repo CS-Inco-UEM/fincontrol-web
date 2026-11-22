@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Layout from "../components/Layout";
 import Modal from "../components/Modal";
@@ -13,6 +13,11 @@ import {
 } from "../services/movimentacoesService";
 
 const moeda = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const NOME_MES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
 
 const ROTULO_TIPO = {
   receita: "Receita",
@@ -57,6 +62,26 @@ export default function Movimentacoes() {
       (m.categoria || "").toLowerCase().includes(termoBusca);
     return bateTipo && bateBusca;
   });
+
+  // Tabela agrupada por mês (igual ao app de referência): como a lista já
+  // vem ordenada por data (mais recente primeiro), meses iguais sempre ficam
+  // em sequência — um objeto guarda em que posição do array "grupos" cada
+  // mês já apareceu, pra não criar grupo duplicado.
+  const indicePorMes = {};
+  const grupos = [];
+  for (let i = 0; i < listaFiltrada.length; i++) {
+    const m = listaFiltrada[i];
+    const d = m.data.toDate();
+    const chave = d.getFullYear() + "-" + d.getMonth();
+    if (indicePorMes[chave] === undefined) {
+      indicePorMes[chave] = grupos.length;
+      grupos.push({
+        rotulo: `${NOME_MES[d.getMonth()]} de ${d.getFullYear()}`,
+        itens: [],
+      });
+    }
+    grupos[indicePorMes[chave]].itens.push(m);
+  }
 
   function abrirNovo() {
     setEditando(null);
@@ -143,32 +168,39 @@ export default function Movimentacoes() {
                 </tr>
               </thead>
               <tbody>
-                {listaFiltrada.map((m) => {
-                  const positivo = m.tipo === "receita" || m.tipo === "resgate";
-                  return (
-                    <tr key={m.id}>
-                      <td>{m.descricao}</td>
-                      <td>{m.categoria}</td>
-                      <td>{m.data.toDate().toLocaleDateString("pt-BR")}</td>
-                      <td><span className={`badge badge-${m.tipo}`}>{ROTULO_TIPO[m.tipo]}</span></td>
-                      <td className={"direita " + (positivo ? "texto-sucesso" : "texto-perigo")}>
-                        {positivo ? "+ " : "- "}{moeda(m.valor)}
-                      </td>
-                      <td>
-                        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                          {(m.tipo === "receita" || m.tipo === "despesa") && (
-                            <button className="botao-icone" onClick={() => abrirEdicao(m)} aria-label="Editar">
-                              <IconeEditar />
-                            </button>
-                          )}
-                          <button className="botao-icone perigo" onClick={() => excluir(m)} aria-label="Excluir">
-                            <IconeExcluir />
-                          </button>
-                        </div>
-                      </td>
+                {grupos.map((grupo) => (
+                  <Fragment key={grupo.rotulo}>
+                    <tr className="linha-grupo-mes">
+                      <td colSpan={6}>{grupo.rotulo}</td>
                     </tr>
-                  );
-                })}
+                    {grupo.itens.map((m) => {
+                      const positivo = m.tipo === "receita" || m.tipo === "resgate";
+                      return (
+                        <tr key={m.id}>
+                          <td>{m.descricao}</td>
+                          <td>{m.categoria}</td>
+                          <td>{m.data.toDate().toLocaleDateString("pt-BR")}</td>
+                          <td><span className={`badge badge-${m.tipo}`}>{ROTULO_TIPO[m.tipo]}</span></td>
+                          <td className={"direita " + (positivo ? "texto-sucesso" : "texto-perigo")}>
+                            {positivo ? "+ " : "- "}{moeda(m.valor)}
+                          </td>
+                          <td>
+                            <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                              {(m.tipo === "receita" || m.tipo === "despesa") && (
+                                <button className="botao-icone" onClick={() => abrirEdicao(m)} aria-label="Editar">
+                                  <IconeEditar />
+                                </button>
+                              )}
+                              <button className="botao-icone perigo" onClick={() => excluir(m)} aria-label="Excluir">
+                                <IconeExcluir />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </Fragment>
+                ))}
               </tbody>
             </table>
           </div>

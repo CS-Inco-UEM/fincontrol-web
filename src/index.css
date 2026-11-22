@@ -526,6 +526,16 @@ h1, h2, h3 {
   text-align: right;
 }
 
+.tabela .linha-grupo-mes td {
+  background: var(--cor-fundo);
+  color: var(--cor-texto-fraco);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 8px 12px;
+}
+
 /* barra de progresso */
 .barra-fundo {
   background: #262a33;

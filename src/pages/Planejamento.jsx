@@ -94,18 +94,25 @@ export default function Planejamento() {
                     <th className="direita">A guardar</th>
                     <th className="direita">Parcela financiamento</th>
                     <th className="direita">Limite de gastos</th>
+                    <th className="direita">Gasto no mês</th>
                     <th className="direita">Aporte real</th>
                     <th>Status</th>
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {plano.meses.map((m) => (
+                  {plano.meses.map((m) => {
+                    let classeGasto = "";
+                    if (m.gastoReal !== null && m.gastoReal > m.limiteGastos) {
+                      classeGasto = "texto-perigo";
+                    }
+                    return (
                     <tr key={`${m.ano}-${m.mes}`}>
                       <td>{NOME_MES_ABREV[m.mes]}/{m.ano}</td>
                       <td className="direita">{moeda(m.aporteRecomendado)}</td>
                       <td className="direita">{moeda(m.parcelasFinanciamento)}</td>
                       <td className="direita">{moeda(m.limiteGastos)}</td>
+                      <td className={"direita " + classeGasto}>{m.gastoReal === null ? "—" : moeda(m.gastoReal)}</td>
                       <td className="direita">{m.aporteReal === null ? "—" : moeda(m.aporteReal)}</td>
                       <td className={CLASSE_STATUS[m.status]}>{ROTULO_STATUS[m.status]}</td>
                       <td>
@@ -116,7 +123,8 @@ export default function Planejamento() {
                         )}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
