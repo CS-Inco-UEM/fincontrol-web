@@ -1,5 +1,3 @@
-# fincontrol-web
-Trabalho prático da disciplina de Construção de Software.
 # FinControl Web
 
 Controle financeiro pessoal com simulador de financiamento.
