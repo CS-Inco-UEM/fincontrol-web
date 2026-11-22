@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CATEGORIAS } from "../utils/categorias";
+import { categoriasPorTipo } from "../utils/categorias";
 
 function paraInputData(timestamp) {
   const d = timestamp ? timestamp.toDate() : new Date();
@@ -12,8 +12,17 @@ export default function MovimentacaoForm({ inicial, onSalvar, onCancelar }) {
   const [tipo, setTipo] = useState(inicial?.tipo ?? "despesa");
   const [valor, setValor] = useState(inicial ? String(inicial.valor) : "");
   const [descricao, setDescricao] = useState(inicial?.descricao ?? "");
-  const [categoria, setCategoria] = useState(inicial?.categoria ?? CATEGORIAS[0]);
+  const [categoria, setCategoria] = useState(inicial?.categoria ?? categoriasPorTipo(inicial?.tipo ?? "despesa")[0]);
+  const categorias = categoriasPorTipo(tipo);
+
+  function handleTipo(novoTipo) {
+    setTipo(novoTipo);
+    if (!categoriasPorTipo(novoTipo).includes(categoria)) {
+      setCategoria(categoriasPorTipo(novoTipo)[0]);
+    }
+  }
   const [data, setData] = useState(paraInputData(inicial?.data));
+  const [duracaoMeses, setDuracaoMeses] = useState("1");
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
 
@@ -40,10 +49,12 @@ export default function MovimentacaoForm({ inicial, onSalvar, onCancelar }) {
         categoria,
         // meio-dia evita problemas de fuso horário na data
         data: new Date(`${data}T12:00:00`),
+        duracaoMeses: inicial ? 1 : parseInt(duracaoMeses, 10) || 1,
       });
       if (!inicial) {
         setValor("");
         setDescricao("");
+        setDuracaoMeses("1");
       }
     } catch (err) {
       console.error(err);
@@ -54,15 +65,14 @@ export default function MovimentacaoForm({ inicial, onSalvar, onCancelar }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: "grid", gap: 8, marginBottom: 24 }}>
-      <h2>{inicial ? "Editar movimentação" : "Nova movimentação"}</h2>
-
-      <select value={tipo} onChange={(e) => setTipo(e.target.value)}>
+    <form onSubmit={handleSubmit} className="formulario">
+      <select className="campo" value={tipo} onChange={(e) => handleTipo(e.target.value)}>
         <option value="despesa">Despesa</option>
         <option value="receita">Receita</option>
       </select>
 
       <input
+        className="campo"
         type="number"
         step="0.01"
         min="0"
@@ -72,29 +82,41 @@ export default function MovimentacaoForm({ inicial, onSalvar, onCancelar }) {
       />
 
       <input
+        className="campo"
         type="text"
         placeholder="Descrição"
         value={descricao}
         onChange={(e) => setDescricao(e.target.value)}
       />
 
-      <select value={categoria} onChange={(e) => setCategoria(e.target.value)}>
-        {CATEGORIAS.map((c) => (
+      <select className="campo" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
+        {categorias.map((c) => (
           <option key={c} value={c}>{c}</option>
         ))}
       </select>
 
-      <input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+      <input className="campo" type="date" value={data} onChange={(e) => setData(e.target.value)} />
 
-      {erro && <p style={{ color: "crimson", margin: 0 }}>{erro}</p>}
+      {!inicial && (
+        <label className="rotulo">
+          Repetir por quantos meses (1 = não repete)
+          <input
+            className="campo"
+            type="number"
+            min="1"
+            value={duracaoMeses}
+            onChange={(e) => setDuracaoMeses(e.target.value)}
+          />
+        </label>
+      )}
 
-      <div style={{ display: "flex", gap: 8 }}>
-        <button type="submit" disabled={salvando}>
+      {erro && <p className="erro">{erro}</p>}
+
+      <div className="linha-botoes">
+        <button className="botao" type="submit" disabled={salvando}>
           {salvando ? "Salvando..." : "Salvar"}
         </button>
-        {inicial && (
-          <button type="button" onClick={onCancelar}>Cancelar</button>
-        )}
+        <button className="botao-secundario" type="button" onClick={onCancelar}>Cancelar</button>
       </div>
     </form>
   );

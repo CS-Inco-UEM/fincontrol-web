@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import Logo from "../components/Logo";
 
 export default function Login() {
   const { user, loading, login } = useAuth();
   const [erro, setErro] = useState("");
 
-  if (loading) return <p>Carregando...</p>;
+  if (loading) return <p className="pagina-estreita">Carregando...</p>;
   if (user) return <Navigate to="/" replace />;
 
   async function handleLogin() {
@@ -24,11 +25,13 @@ export default function Login() {
   }
 
   return (
-    <main style={{ maxWidth: 360, margin: "80px auto", textAlign: "center" }}>
-      <h1>FinControl Web</h1>
-      <p>Controle financeiro pessoal com simulador de financiamento.</p>
-      <button onClick={handleLogin}>Entrar com Google</button>
-      {erro && <p style={{ color: "crimson" }}>{erro}</p>}
+    <main className="pagina-estreita">
+      <Logo grande />
+      <p className="texto-fraco">
+        Saldo, metas de economia e simulação de financiamento em um só lugar.
+      </p>
+      <button className="botao" onClick={handleLogin}>Entrar com Google</button>
+      {erro && <p className="erro">{erro}</p>}
     </main>
   );
 }

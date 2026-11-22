@@ -17,7 +17,37 @@ service cloud.firestore {
         && request.resource.data.descricao is string;
     }
 
-    // Qualquer outro caminho (metas, planejamento, simulações, etc.)
-    // fica negado por padrão até ganhar sua própria regra explícita.
+    // Metas: cada usuário só acessa as próprias. O valor guardado não é
+    // um campo aqui, é derivado das movimentações (transferência/resgate)
+    // vinculadas à meta, então essa regra só valida os dados da meta em si.
+    match /usuarios/{userId}/metas/{metaId} {
+      allow read, delete: if request.auth != null
+        && request.auth.uid == userId;
+
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.nome is string
+        && request.resource.data.valorAlvo is number
+        && request.resource.data.valorAlvo > 0
+        && request.resource.data.dataLimite is timestamp;
+    }
+
+    // Financiamentos: cada usuário só acessa os próprios. As parcelas em si
+    // não são gravadas, são calculadas no aplicativo a partir desses dados.
+    match /usuarios/{userId}/financiamentos/{finId} {
+      allow read, delete: if request.auth != null
+        && request.auth.uid == userId;
+
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.valorFinanciado is number
+        && request.resource.data.valorFinanciado > 0
+        && request.resource.data.numParcelas is int
+        && request.resource.data.numParcelas > 0
+        && request.resource.data.sistema in ['PRICE', 'SAC'];
+    }
+
+    // Qualquer outro caminho (planejamento é calculado, não gravado, por
+    // exemplo) fica negado por padrão até ganhar sua própria regra explícita.
   }
 }

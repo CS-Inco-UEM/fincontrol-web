@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import Layout from "../components/Layout";
+import Modal from "../components/Modal";
+import EstadoVazio from "../components/EstadoVazio";
 import MovimentacaoForm from "../components/MovimentacaoForm";
+import { IconeEditar, IconeExcluir } from "../components/icones";
 import {
   adicionarMovimentacao,
   atualizarMovimentacao,
@@ -9,33 +12,70 @@ import {
   ouvirMovimentacoes,
 } from "../services/movimentacoesService";
 
-const moeda = (v) =>
-  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const moeda = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const ROTULO_TIPO = {
+  receita: "Receita",
+  despesa: "Despesa",
+  transferencia: "Transferência",
+  resgate: "Resgate",
+};
 
 export default function Movimentacoes() {
   const { user } = useAuth();
   const [lista, setLista] = useState([]);
-  const [editando, setEditando] = useState(null);
+  const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+
+  const [busca, setBusca] = useState("");
+  const [filtroTipo, setFiltroTipo] = useState("todos");
+
+  const [modalAberto, setModalAberto] = useState(false);
+  const [editando, setEditando] = useState(null);
 
   useEffect(() => {
     return ouvirMovimentacoes(
       user.uid,
-      setLista,
+      (l) => {
+        setLista(l);
+        setCarregando(false);
+      },
       (e) => {
         console.error(e);
         setErro("Erro ao carregar movimentações.");
+        setCarregando(false);
       }
     );
   }, [user.uid]);
 
+  const termoBusca = busca.trim().toLowerCase();
+  const listaFiltrada = lista.filter((m) => {
+    const bateTipo = filtroTipo === "todos" || m.tipo === filtroTipo;
+    const bateBusca =
+      !termoBusca ||
+      m.descricao.toLowerCase().includes(termoBusca) ||
+      (m.categoria || "").toLowerCase().includes(termoBusca);
+    return bateTipo && bateBusca;
+  });
+
+  function abrirNovo() {
+    setEditando(null);
+    setModalAberto(true);
+  }
+
+  function abrirEdicao(mov) {
+    setEditando(mov);
+    setModalAberto(true);
+  }
+
   async function salvar(dados) {
     if (editando) {
       await atualizarMovimentacao(user.uid, editando.id, dados);
-      setEditando(null);
     } else {
       await adicionarMovimentacao(user.uid, dados);
     }
+    setModalAberto(false);
+    setEditando(null);
   }
 
   async function excluir(mov) {
@@ -44,60 +84,107 @@ export default function Movimentacoes() {
       await excluirMovimentacao(user.uid, mov.id);
     } catch (e) {
       console.error(e);
-      setErro("Não foi possível excluir.");
+      setErro("Não foi possível excluir essa movimentação.");
     }
   }
 
   return (
-    <main style={{ maxWidth: 700, margin: "40px auto", padding: "0 16px" }}>
-      <header style={{ display: "flex", justifyContent: "space-between" }}>
-        <h1>Movimentações</h1>
-        <Link to="/">Voltar ao Dashboard</Link>
-      </header>
+    <Layout
+      titulo="Movimentações"
+      subtitulo="Receitas, despesas e transferências lançadas na conta."
+      acoes={<button className="botao" onClick={abrirNovo}>+ Nova movimentação</button>}
+    >
+      {erro && <p className="erro" style={{ marginBottom: 12 }}>{erro}</p>}
 
-      <MovimentacaoForm
-        key={editando?.id ?? "novo"}
-        inicial={editando}
-        onSalvar={salvar}
-        onCancelar={() => setEditando(null)}
-      />
+      <div className="cartao">
+        <div className="barra-filtros">
+          <input
+            className="campo campo-busca"
+            type="text"
+            placeholder="Buscar por descrição ou categoria"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+          <select className="campo" style={{ maxWidth: 190 }} value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)}>
+            <option value="todos">Todos os tipos</option>
+            <option value="receita">Receita</option>
+            <option value="despesa">Despesa</option>
+            <option value="transferencia">Transferência</option>
+            <option value="resgate">Resgate</option>
+          </select>
+        </div>
 
-      {erro && <p style={{ color: "crimson" }}>{erro}</p>}
+        {carregando ? (
+          <div>
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="skeleton skeleton-linha" style={{ width: "100%" }} />
+            ))}
+          </div>
+        ) : listaFiltrada.length === 0 ? (
+          lista.length === 0 ? (
+            <EstadoVazio
+              titulo="Nenhuma movimentação lançada"
+              descricao="Registre sua primeira receita ou despesa pra começar a acompanhar o saldo."
+            />
+          ) : (
+            <p className="texto-fraco">Nenhuma movimentação encontrada com esse filtro.</p>
+          )
+        ) : (
+          <div className="tabela-wrap">
+            <table className="tabela">
+              <thead>
+                <tr>
+                  <th>Descrição</th>
+                  <th>Categoria</th>
+                  <th>Data</th>
+                  <th>Tipo</th>
+                  <th className="direita">Valor</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {listaFiltrada.map((m) => {
+                  const positivo = m.tipo === "receita" || m.tipo === "resgate";
+                  return (
+                    <tr key={m.id}>
+                      <td>{m.descricao}</td>
+                      <td>{m.categoria}</td>
+                      <td>{m.data.toDate().toLocaleDateString("pt-BR")}</td>
+                      <td><span className={`badge badge-${m.tipo}`}>{ROTULO_TIPO[m.tipo]}</span></td>
+                      <td className={"direita " + (positivo ? "texto-sucesso" : "texto-perigo")}>
+                        {positivo ? "+ " : "- "}{moeda(m.valor)}
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                          {(m.tipo === "receita" || m.tipo === "despesa") && (
+                            <button className="botao-icone" onClick={() => abrirEdicao(m)} aria-label="Editar">
+                              <IconeEditar />
+                            </button>
+                          )}
+                          <button className="botao-icone perigo" onClick={() => excluir(m)} aria-label="Excluir">
+                            <IconeExcluir />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-      {lista.length === 0 ? (
-        <p>Nenhuma movimentação registrada.</p>
-      ) : (
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          {lista.map((m) => (
-            <li
-              key={m.id}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                borderBottom: "1px solid #ccc",
-                padding: "8px 0",
-              }}
-            >
-              <div>
-                <strong>{m.descricao}</strong>
-                <div style={{ fontSize: 13, opacity: 0.7 }}>
-                  {m.categoria} · {m.data.toDate().toLocaleDateString("pt-BR")}
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ color: m.tipo === "receita" ? "green" : "crimson" }}>
-                  {m.tipo === "receita" ? "+" : "-"} {moeda(m.valor)}
-                </span>
-                {(m.tipo === "receita" || m.tipo === "despesa") && (
-                  <button onClick={() => setEditando(m)}>Editar</button>
-                )}
-                <button onClick={() => excluir(m)}>Excluir</button>
-              </div>
-            </li>
-          ))}
-        </ul>
+      {modalAberto && (
+        <Modal titulo={editando ? "Editar movimentação" : "Nova movimentação"} onFechar={() => setModalAberto(false)}>
+          <MovimentacaoForm
+            key={editando?.id ?? "nova"}
+            inicial={editando}
+            onSalvar={salvar}
+            onCancelar={() => setModalAberto(false)}
+          />
+        </Modal>
       )}
-    </main>
+    </Layout>
   );
 }

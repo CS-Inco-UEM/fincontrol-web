@@ -2,8 +2,11 @@ import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
+import VisaoGeral from "./pages/VisaoGeral";
 import Movimentacoes from "./pages/Movimentacoes";
+import Metas from "./pages/Metas";
+import Planejamento from "./pages/Planejamento";
+import Simulacoes from "./pages/Simulacoes";
 
 export default function App() {
   return (
@@ -15,7 +18,7 @@ export default function App() {
             path="/"
             element={
               <PrivateRoute>
-                <Dashboard />
+                <VisaoGeral />
               </PrivateRoute>
             }
           />
@@ -24,6 +27,30 @@ export default function App() {
             element={
               <PrivateRoute>
                 <Movimentacoes />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/metas"
+            element={
+              <PrivateRoute>
+                <Metas />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/planejamento"
+            element={
+              <PrivateRoute>
+                <Planejamento />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/simulacoes"
+            element={
+              <PrivateRoute>
+                <Simulacoes />
               </PrivateRoute>
             }
           />
