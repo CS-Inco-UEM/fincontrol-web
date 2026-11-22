@@ -134,15 +134,19 @@ export function calcularPlanejamento({
     const receitaReal = somaTipoNoMes(movimentacoes, "receita", ano, mes);
     const despesaReal = somaTipoNoMes(movimentacoes, "despesa", ano, mes);
 
+    // Usa o valor real lançado nesse mês sempre que ele existir — mesmo se o
+    // mês ainda não "chegou" no calendário (temDadosReais), porque nada
+    // impede o usuário de já ter lançado algo pra um mês futuro. A média
+    // histórica é só o fallback pra quando realmente não tem nada lançado.
     let receitaPrevista;
-    if (temDadosReais && receitaReal > 0) {
+    if (receitaReal > 0) {
       receitaPrevista = receitaReal;
     } else {
       receitaPrevista = mediaHistoricaMensal(movimentacoes, "receita", hoje);
     }
 
     let despesaBase;
-    if (temDadosReais && despesaReal > 0) {
+    if (despesaReal > 0) {
       despesaBase = despesaReal;
     } else {
       despesaBase = mediaHistoricaMensal(movimentacoes, "despesa", hoje);

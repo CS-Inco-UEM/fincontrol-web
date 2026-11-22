@@ -11,6 +11,8 @@ import {
   excluirMovimentacao,
   ouvirMovimentacoes,
 } from "../services/movimentacoesService";
+import { ouvirFinanciamentos } from "../services/financiamentosService";
+import { gerarParcelas, parcelaNoMes } from "../utils/financiamento";
 
 const moeda = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -38,6 +40,14 @@ export default function Movimentacoes() {
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState(null);
 
+  // Guarda só os meses que o usuário abriu manualmente; um mês que ainda
+  // não aparece aqui conta como fechado (por isso a tela abre tudo recolhido).
+  const [mesesAbertos, setMesesAbertos] = useState({});
+  const [financiamentos, setFinanciamentos] = useState([]);
+
+  const hoje = new Date();
+  const chaveMesAtual = hoje.getFullYear() + "-" + hoje.getMonth();
+
   useEffect(() => {
     return ouvirMovimentacoes(
       user.uid,
@@ -51,6 +61,10 @@ export default function Movimentacoes() {
         setCarregando(false);
       }
     );
+  }, [user.uid]);
+
+  useEffect(() => {
+    return ouvirFinanciamentos(user.uid, setFinanciamentos, () => {});
   }, [user.uid]);
 
   const termoBusca = busca.trim().toLowerCase();
@@ -67,6 +81,8 @@ export default function Movimentacoes() {
   // vem ordenada por data (mais recente primeiro), meses iguais sempre ficam
   // em sequência — um objeto guarda em que posição do array "grupos" cada
   // mês já apareceu, pra não criar grupo duplicado.
+  // Cada grupo também soma um resumo do mês: entrada (receita), saída
+  // (despesa) e guardado pra meta (transferência - resgate).
   const indicePorMes = {};
   const grupos = [];
   for (let i = 0; i < listaFiltrada.length; i++) {
@@ -76,11 +92,51 @@ export default function Movimentacoes() {
     if (indicePorMes[chave] === undefined) {
       indicePorMes[chave] = grupos.length;
       grupos.push({
+        chave,
         rotulo: `${NOME_MES[d.getMonth()]} de ${d.getFullYear()}`,
         itens: [],
+        entradas: 0,
+        saidas: 0,
+        financiamento: 0,
+        guardadoMeta: 0,
       });
     }
-    grupos[indicePorMes[chave]].itens.push(m);
+    const grupo = grupos[indicePorMes[chave]];
+    grupo.itens.push(m);
+    if (m.tipo === "receita") {
+      grupo.entradas = grupo.entradas + m.valor;
+    } else if (m.tipo === "despesa") {
+      grupo.saidas = grupo.saidas + m.valor;
+    } else if (m.tipo === "transferencia") {
+      grupo.guardadoMeta = grupo.guardadoMeta + m.valor;
+    } else if (m.tipo === "resgate") {
+      grupo.guardadoMeta = grupo.guardadoMeta - m.valor;
+    }
+  }
+
+  // A parcela de financiamento do mês não é uma movimentação lançada — vem
+  // calculada à parte, a partir dos financiamentos ativos, e fica num campo
+  // próprio (não soma dentro de "saídas") pra aparecer destacada no resumo.
+  const parcelasPorFinanciamento = [];
+  for (let i = 0; i < financiamentos.length; i++) {
+    const financiamento = financiamentos[i];
+    parcelasPorFinanciamento.push({ financiamento, parcelas: gerarParcelas(financiamento) });
+  }
+  for (let i = 0; i < grupos.length; i++) {
+    const partes = grupos[i].chave.split("-");
+    const ano = parseInt(partes[0], 10);
+    const mes = parseInt(partes[1], 10);
+    let parcelaDoMes = 0;
+    for (let j = 0; j < parcelasPorFinanciamento.length; j++) {
+      const item = parcelasPorFinanciamento[j];
+      parcelaDoMes = parcelaDoMes + parcelaNoMes(item.financiamento, item.parcelas, ano, mes);
+    }
+    grupos[i].financiamento = parcelaDoMes;
+  }
+
+  function alternarMes(chave) {
+    const estaAberto = mesesAbertos[chave] === true;
+    setMesesAbertos({ ...mesesAbertos, [chave]: !estaAberto });
   }
 
   function abrirNovo() {
@@ -168,12 +224,36 @@ export default function Movimentacoes() {
                 </tr>
               </thead>
               <tbody>
-                {grupos.map((grupo) => (
-                  <Fragment key={grupo.rotulo}>
-                    <tr className="linha-grupo-mes">
-                      <td colSpan={6}>{grupo.rotulo}</td>
+                {grupos.map((grupo) => {
+                  const aberto = mesesAbertos[grupo.chave] === true;
+                  const ehMesAtual = grupo.chave === chaveMesAtual;
+                  return (
+                  <Fragment key={grupo.chave}>
+                    <tr
+                      className={"linha-grupo-mes" + (ehMesAtual ? " mes-atual" : "")}
+                      onClick={() => alternarMes(grupo.chave)}
+                    >
+                      <td colSpan={6}>
+                        <div className="resumo-linha-mes">
+                          <span>
+                            {aberto ? "▾" : "▸"} {grupo.rotulo}{ehMesAtual ? " · mês atual" : ""}
+                          </span>
+                          <span className="resumo-linha-mes-valores">
+                            Entrada <span className="texto-sucesso">{moeda(grupo.entradas)}</span>
+                            {" · Saída "}
+                            <span className="texto-perigo">{moeda(grupo.saidas)}</span>
+                            {grupo.financiamento > 0 && (
+                              <>
+                                {" · Financiamento "}
+                                <span className="texto-perigo">{moeda(grupo.financiamento)}</span>
+                              </>
+                            )}
+                            {grupo.guardadoMeta !== 0 ? ` · Guardado p/ meta ${moeda(grupo.guardadoMeta)}` : ""}
+                          </span>
+                        </div>
+                      </td>
                     </tr>
-                    {grupo.itens.map((m) => {
+                    {aberto && grupo.itens.map((m) => {
                       const positivo = m.tipo === "receita" || m.tipo === "resgate";
                       return (
                         <tr key={m.id}>
@@ -200,7 +280,8 @@ export default function Movimentacoes() {
                       );
                     })}
                   </Fragment>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

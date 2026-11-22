@@ -526,14 +526,96 @@ h1, h2, h3 {
   text-align: right;
 }
 
+.tabela .linha-grupo-mes {
+  cursor: pointer;
+}
+
 .tabela .linha-grupo-mes td {
   background: var(--cor-fundo);
   color: var(--cor-texto-fraco);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11.5px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 8px 12px;
+  letter-spacing: 0.05em;
+  padding: 10px 12px 10px 16px;
+  border-left: 3px solid var(--cor-primaria);
+}
+
+.tabela .linha-grupo-mes:hover td {
+  background: var(--cor-superficie);
+}
+
+.tabela .linha-grupo-mes.mes-atual td {
+  background: var(--cor-primaria-clara);
+  color: var(--cor-primaria-escura);
+  border-left-color: var(--cor-primaria-escura);
+}
+
+.tabela .linha-grupo-mes.mes-atual:hover td {
+  background: var(--cor-primaria-clara);
+}
+
+.resumo-linha-mes {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.resumo-linha-mes-valores {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: nowrap;
+}
+
+.mini-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.mini-stat {
+  flex: 1;
+  min-width: 90px;
+}
+
+.mini-stat-rotulo {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cor-texto-fraco);
+  margin: 0 0 3px;
+}
+
+.mini-stat-valor {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.divisor-cartao {
+  border: none;
+  border-top: 1px solid var(--cor-borda);
+  margin: 14px 0;
+}
+
+.badge-cumprido,
+.badge-fechado {
+  background: var(--cor-sucesso-clara);
+  color: var(--cor-sucesso);
+}
+
+.badge-pendente {
+  background: var(--cor-perigo-clara);
+  color: var(--cor-perigo);
+}
+
+.badge-parcial,
+.badge-futuro {
+  background: var(--cor-borda);
+  color: var(--cor-texto-fraco);
 }
 
 /* barra de progresso */
